@@ -21,9 +21,12 @@ fn main() {
 
  */
 
- // Other approch to imopl the above code
+ use std::sync::mpsc;
+
+// Other approch to imopl the above code
  use tokio::runtime::Builder;
- use tokio::time::{Duration, sleep};
+use tokio::sync::mpsc;
+use tokio::time::{Duration, sleep};
 
  fn main() {
      let runtime = Builder::new_multi_thread()
@@ -54,4 +57,49 @@ fn main() {
     sleep(Duration::from_millis(miliis)).await;
     println!("Task {} stopping.", i);
 
+ }
+
+
+ 
+ pub struct Task {
+    name: String
+ }
+
+ async fn handle_task(task: Task) {
+    println!("Got task {}", task.name)
+ }
+
+ #[derive(Clone)]
+ pub struct TaskSpawner {
+    spawn: mpsc::Sender<Task>
+ }
+
+ impl TaskSpawner {
+     pub fn new() -> TaskSpawner {
+        let (send, mut recv) = mpsc::channel();
+
+        let rt = Builder::new_current_thread()
+        .enable_all()
+        .build()
+        .unwrap();
+        
+        std::thread::spawn(move || {
+            rt.block_on( async move {
+                while let Some(task) = recv.recv().await {
+                    tokio::spawn(handle_task(task));
+                }
+            })
+        });
+        TaskSpawner {
+            spwan: send
+        }
+     }
+
+     pub fn spawn_task(&self, task: Task) {
+        match self.spawn.blocking_send(task) {
+            Ok(()) => {},
+            Err(_) => panic("The shard runtime has shutdown.")
+        }
+     }
+     todo!();
  }
