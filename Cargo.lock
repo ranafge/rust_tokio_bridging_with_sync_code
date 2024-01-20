@@ -710,6 +710,7 @@ dependencies = [
 name = "tokio_topics_bridging_with_sync_code"
 version = "0.1.0"
 dependencies = [
+ "bytes",
  "mini-redis",
  "tokio",
 ]
